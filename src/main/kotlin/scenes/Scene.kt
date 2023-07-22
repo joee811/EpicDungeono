@@ -5,13 +5,13 @@ interface Renderable {
 }
 
 class Scene(
-    private val description: String
+    val description: String
 ): Renderable {
 
     val doors = mutableListOf<Door>()
 
     override fun render(): String {
-        var fulldesc = description
+        var fulldesc = "I am in $description"
         doors.forEach { door ->
             fulldesc += "\n there is a ${door.render()}"
         }
@@ -19,8 +19,8 @@ class Scene(
     }
 }
 
-class Door(
-    private val description: String,
+data class Door(
+    val description: String,
     val areaA: Scene,
     val areaB: Scene
 ): Renderable {
@@ -32,6 +32,16 @@ class Door(
 
     override fun render(): String {
         return description
+    }
+
+    fun openFrom(scene: Scene): Scene {
+        val toScene = if(scene.description == areaA.description){
+            areaB
+        }else{
+            areaA
+        }
+        println("The door opens with a creak, and I enter...")
+        return toScene
     }
 }
 
@@ -47,17 +57,36 @@ class SceneMap(
             if(command.startsWith("look")){
                 lookAround()
             }else if(command.startsWith("open")){
-                open(command.substringAfter("open"))
+                open(command.substringAfter("open").trim())
             }
+            println()
         }
     }
 
     private fun lookAround(){
-        println("I am looking around")
         println("${currentScene.render()}")
     }
 
     private fun open(thingToOpen: String){
-        println("I am trying to open $thingToOpen")
+        val thingToOpenClean = thingToOpen.lowercase().trim()
+        val foundDoors = mutableListOf<Door>()
+        for(currentDoor in currentScene.doors){
+            val simpleDescription = currentDoor.description.lowercase()
+            if(simpleDescription.contains(thingToOpenClean)){
+                foundDoors.add(currentDoor)
+            }
+        }
+        if(foundDoors.isEmpty()){
+            println("I can't see a $thingToOpen to open")
+        }else if(foundDoors.size > 1){
+            println("Hmm, which one should I open?")
+            foundDoors.forEach {
+                println(" ${it.render()}")
+            }
+        }else{
+            val actualDoor = foundDoors.first()
+            println("I walk over and open ${actualDoor.render()}")
+            currentScene = actualDoor.openFrom(currentScene)
+        }
     }
 }
